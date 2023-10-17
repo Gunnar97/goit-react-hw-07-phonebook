@@ -1,19 +1,37 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { nanoid } from 'nanoid';
 import { ContactForm } from 'components/ContactForm/ContactForm';
 import FilterByName from 'components/FilterByName/FilterByName';
 import ContactList from 'components/ContactList/ContactList';
+import Loader from 'components/Loader/Loader';
 import { PhoneCard, Title, TitleMain } from 'AppStyled';
 import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { deleteContact, setContacts, setFilter } from 'redux/phonebookReducers';
+import { setFilter } from 'redux/phonebookReducers';
+import {
+  addContactThunk,
+  deleteContactThunk,
+  fetchContactsThunk,
+} from 'thunk/thunk';
+import {
+  selectContacts,
+  selectError,
+  selectFilter,
+  selectIsLoading,
+} from 'redux/selectors';
 
 export const App = () => {
-  const contacts = useSelector(state => state.phonebook.contacts);
-  const filter = useSelector(state => state.phonebook.filter);
+  const contacts = useSelector(selectContacts);
+  const isLoading = useSelector(selectIsLoading);
+  const error = useSelector(selectError);
+  const filter = useSelector(selectFilter);
 
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchContactsThunk());
+  }, [dispatch]);
 
   const handleOnInput = eve => {
     dispatch(setFilter(eve.target.value));
@@ -24,7 +42,7 @@ export const App = () => {
 
     if (name && number) {
       if (!contactInList) {
-        dispatch(setContacts({ id: nanoid(), name, number }));
+        dispatch(addContactThunk({ id: nanoid(), name, number }));
         toast.success(`${name} was added to contacts`);
       } else {
         toast.error(`${name} is already exist in contacts`);
@@ -33,7 +51,7 @@ export const App = () => {
   };
 
   const handleDelContact = id => {
-    dispatch(deleteContact(id));
+    dispatch(deleteContactThunk(id));
   };
 
   const filterOfContacts = () => {
@@ -47,6 +65,8 @@ export const App = () => {
     <PhoneCard>
       <TitleMain>Phone book</TitleMain>
       <ContactForm addContact={handleAddContact} />
+      {isLoading && <Loader />}
+      {error && <div>Error loading contacts: {error}</div>}{' '}
       {contacts.length ? (
         <>
           <Title>Contacts</Title>
